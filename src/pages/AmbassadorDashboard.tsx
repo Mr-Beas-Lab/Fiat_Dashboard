@@ -1,46 +1,46 @@
-"use client"
-
-import type React from "react"
-import { useEffect, useState } from "react"
-import { collection, getDocs, query, where, addDoc, doc, getDoc } from "firebase/firestore"
-import { ref, uploadBytes, getDownloadURL } from "firebase/storage"
-import { db, storage } from "../firebase/firebaseConfig"
-import type { Ambassador, Receipt, Transaction } from "../types"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "../components/ui/tabs"
-import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card"
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../components/ui/dialog"
-import ReceiptList from "../components/ReceiptList"
-import TransactionList from "../components/TransactionList"
-import DepositForm from "../components/DepositForm"
-import { CreditCard, ReceiptIcon, Upload } from "lucide-react"
+import React, { useEffect, useState } from "react";
+import { useSearchParams } from "react-router-dom";
+import { collection, getDocs, query, where, addDoc, doc, getDoc } from "firebase/firestore";
+import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
+import { db, storage } from "../firebase/firebaseConfig";
+import type { Ambassador, Receipt, Transaction } from "../types";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "../components/ui/tabs";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../components/ui/dialog";
+import Deposit from "../components/ambassador/Deposit";
+import Receipts from "../components/ambassador/Receipts";
+import Transactions from "../components/ambassador/Transactions";
+import LoadingScreen from "./Loading";
 
 const AmbassadorDashboard: React.FC = () => {
-  const [ambassador, setAmbassador] = useState<Ambassador | null>(null)
-  const [receipts, setReceipts] = useState<Receipt[]>([])
-  const [transactions, setTransactions] = useState<Transaction[]>([])
-  const [isReceiptViewOpen, setIsReceiptViewOpen] = useState(false)
-  const [currentReceipt, setCurrentReceipt] = useState<Receipt | null>(null)
-  const [loading, setLoading] = useState(true)
+  const [ambassador, setAmbassador] = useState<Ambassador | null>(null);
+  const [receipts, setReceipts] = useState<Receipt[]>([]);
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [isReceiptViewOpen, setIsReceiptViewOpen] = useState(false);
+  const [currentReceipt, setCurrentReceipt] = useState<Receipt | null>(null);
+  const [loading, setLoading] = useState(true);
 
-  // In a real app, this would come from authentication
-  const ambassadorId = "AMBASSADOR_ID"
+  // Extract userId from URL
+  const [searchParams] = useSearchParams();
+  const ambassadorId = searchParams.get("userId");
 
   useEffect(() => {
     const fetchData = async () => {
-      setLoading(true)
+      if (!ambassadorId) return; // Ensure ambassadorId is available
+
+      setLoading(true);
       try {
         // Fetch ambassador data
-        const ambassadorDoc = await getDoc(doc(db, "ambassadors", ambassadorId))
+        const ambassadorDoc = await getDoc(doc(db, "staffs", ambassadorId));
         if (ambassadorDoc.exists()) {
           setAmbassador({
             id: ambassadorDoc.id,
             ...ambassadorDoc.data(),
-          } as Ambassador)
+          } as Ambassador);
         }
 
         // Fetch receipts
-        const receiptsQuery = query(collection(db, "receipts"), where("ambassadorId", "==", ambassadorId))
-        const receiptsSnapshot = await getDocs(receiptsQuery)
+        const receiptsQuery = query(collection(db, "receipts"), where("ambassadorId", "==", ambassadorId));
+        const receiptsSnapshot = await getDocs(receiptsQuery);
         const receiptsData = receiptsSnapshot.docs.map(
           (doc) =>
             ({
@@ -48,12 +48,12 @@ const AmbassadorDashboard: React.FC = () => {
               ...doc.data(),
               createdAt: doc.data().createdAt?.toDate() || new Date(),
             }) as Receipt,
-        )
-        setReceipts(receiptsData)
+        );
+        setReceipts(receiptsData);
 
         // Fetch transactions
-        const transactionsQuery = query(collection(db, "transactions"), where("ambassadorId", "==", ambassadorId))
-        const transactionsSnapshot = await getDocs(transactionsQuery)
+        const transactionsQuery = query(collection(db, "transactions"), where("ambassadorId", "==", ambassadorId));
+        const transactionsSnapshot = await getDocs(transactionsQuery);
         const transactionsData = transactionsSnapshot.docs.map(
           (doc) =>
             ({
@@ -61,31 +61,33 @@ const AmbassadorDashboard: React.FC = () => {
               ...doc.data(),
               createdAt: doc.data().createdAt?.toDate() || new Date(),
             }) as Transaction,
-        )
-        setTransactions(transactionsData)
+        );
+        setTransactions(transactionsData);
       } catch (error) {
-        console.error("Error fetching data:", error)
+        console.error("Error fetching data:", error);
       } finally {
-        setLoading(false)
+        setLoading(false);
       }
-    }
+    };
 
-    fetchData()
-  }, [ambassadorId])
+    fetchData();
+  }, [ambassadorId]);
 
   const handleViewReceipt = (receipt: Receipt) => {
-    setCurrentReceipt(receipt)
-    setIsReceiptViewOpen(true)
-  }
+    setCurrentReceipt(receipt);
+    setIsReceiptViewOpen(true);
+  };
 
-  const handleSubmitDeposit = async (amount: number, currency: string, receiptImage: File) => {
+  const handleSubmitDeposit = async (amount: number, currency: string, receiptImage: File): Promise<void> => {
+    if (!ambassadorId) {
+      throw new Error("Ambassador ID is missing.");
+    }
+  
     try {
-      // Upload receipt image to storage
-      const storageRef = ref(storage, `receipts/${ambassadorId}/${Date.now()}_${receiptImage.name}`)
-      const uploadResult = await uploadBytes(storageRef, receiptImage)
-      const imageUrl = await getDownloadURL(uploadResult.ref)
-
-      // Create receipt document
+      const storageRef = ref(storage, `receipts/${ambassadorId}/${Date.now()}_${receiptImage.name}`);
+      const uploadResult = await uploadBytes(storageRef, receiptImage);
+      const imageUrl = await getDownloadURL(uploadResult.ref);
+  
       const receiptData = {
         amount,
         currency,
@@ -93,23 +95,25 @@ const AmbassadorDashboard: React.FC = () => {
         ambassadorId,
         imageUrl,
         createdAt: new Date(),
-      }
-
-      const docRef = await addDoc(collection(db, "receipts"), receiptData)
-
-      // Update local state
+      };
+  
+      const docRef = await addDoc(collection(db, "receipts"), receiptData);
+  
       const newReceipt: Receipt = {
         id: docRef.id,
         ...receiptData,
-      }
-
-      setReceipts([...receipts, newReceipt])
-
-      return docRef.id
+      };
+  
+      setReceipts((prevReceipts) => [...prevReceipts, newReceipt]);
     } catch (error) {
-      console.error("Error submitting deposit:", error)
-      throw error
+      console.error("Error submitting deposit:", error);
+      throw error;
     }
+  };
+  
+
+  if (loading) {
+    return <LoadingScreen />;
   }
 
   return (
@@ -145,44 +149,6 @@ const AmbassadorDashboard: React.FC = () => {
         </div>
       )}
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Deposits</CardTitle>
-            <CreditCard className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {transactions
-                .filter((t) => t.type === "deposit" && t.status === "completed")
-                .reduce((sum, t) => sum + t.amount, 0)
-                .toFixed(2)}{" "}
-              USD
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Pending Receipts</CardTitle>
-            <ReceiptIcon className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{receipts.filter((r) => r.status === "pending").length}</div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Approved Receipts</CardTitle>
-            <Upload className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{receipts.filter((r) => r.status === "approved").length}</div>
-          </CardContent>
-        </Card>
-      </div>
-
       <Tabs defaultValue="deposit">
         <TabsList className="mb-4">
           <TabsTrigger value="deposit">Make Deposit</TabsTrigger>
@@ -191,17 +157,15 @@ const AmbassadorDashboard: React.FC = () => {
         </TabsList>
 
         <TabsContent value="deposit">
-          <div className="max-w-md mx-auto">
-            <DepositForm onSubmit={handleSubmitDeposit} />
-          </div>
+          <Deposit onSubmit={handleSubmitDeposit} />
         </TabsContent>
 
         <TabsContent value="receipts">
-          <ReceiptList receipts={receipts} onViewReceipt={handleViewReceipt} />
+          <Receipts receipts={receipts} onViewReceipt={handleViewReceipt} />
         </TabsContent>
 
         <TabsContent value="transactions">
-          <TransactionList transactions={transactions} />
+          <Transactions transactions={transactions} />
         </TabsContent>
       </Tabs>
 
@@ -258,8 +222,7 @@ const AmbassadorDashboard: React.FC = () => {
         </DialogContent>
       </Dialog>
     </div>
-  )
-}
+  );
+};
 
-export default AmbassadorDashboard
-
+export default AmbassadorDashboard;

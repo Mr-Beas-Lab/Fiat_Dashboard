@@ -1,61 +1,102 @@
-"use client"
-
-import type React from "react"
-import { useState } from "react"
-import type { Ambassador, PaymentMethod } from "../types"
-import { Button } from "./ui/button"
-import { Input } from "./ui/input"
-import { Label } from "./ui/label"
-import { Textarea } from "./ui/textarea"
-import { X, Plus } from "lucide-react"
+import type React from "react";
+import { useState } from "react";
+import type { Ambassador, PaymentMethod } from "../types";
+import { Button } from "./ui/button";
+import { Input } from "./ui/input";
+import { Label } from "./ui/label";
+import { Textarea } from "./ui/textarea";
+import { X, Plus } from "lucide-react";
+import { addDoc, collection, doc, updateDoc } from "firebase/firestore";
+import { db } from "../firebase/firebaseConfig";
+import { validateUser } from "../lib/userValidator";
+import { v4 as uuidv4 } from "uuid";
 
 interface AmbassadorFormProps {
-  ambassador?: Ambassador
-  onSubmit: (ambassador: Omit<Ambassador, "id" | "createdAt">) => void
+  ambassador?: Ambassador;
+  onSubmit: (ambassador: Omit<Ambassador, "id" | "createdAt">) => void;
 }
 
 const AmbassadorForm: React.FC<AmbassadorFormProps> = ({ ambassador, onSubmit }) => {
-  const [name, setName] = useState(ambassador?.name || "")
-  const [email, setEmail] = useState(ambassador?.email || "")
-  const [phone, setPhone] = useState(ambassador?.phone || "")
-  const [address, setAddress] = useState(ambassador?.address || "")
-  const [country, setCountry] = useState(ambassador?.country || "")
-  const [photoUrl, setPhotoUrl] = useState(ambassador?.photoUrl || "")
+  const [name, setName] = useState(ambassador?.name || "");
+  const [email, setEmail] = useState(ambassador?.email || "");
+  const [phone, setPhone] = useState(ambassador?.phone || "");
+  const [address, setAddress] = useState(ambassador?.address || "");
+  const [country, setCountry] = useState(ambassador?.country || "");
+  const [photoUrl, setPhotoUrl] = useState(ambassador?.photoUrl || "");
   const [paymentMethods, setPaymentMethods] = useState<Omit<PaymentMethod, "id">[]>(
     ambassador?.paymentMethods.map((pm) => ({
       bankName: pm.bankName,
       accountNumber: pm.accountNumber,
       accountName: pm.accountName,
       swiftCode: pm.swiftCode,
-    })) || [],
-  )
+    })) || []
+  );
 
   const addPaymentMethod = () => {
-    setPaymentMethods([...paymentMethods, { bankName: "", accountNumber: "", accountName: "", swiftCode: "" }])
-  }
+    setPaymentMethods([...paymentMethods, { bankName: "", accountNumber: "", accountName: "", swiftCode: "" }]);
+  };
 
   const removePaymentMethod = (index: number) => {
-    setPaymentMethods(paymentMethods.filter((_, i) => i !== index))
-  }
+    setPaymentMethods(paymentMethods.filter((_, i) => i !== index));
+  };
 
   const updatePaymentMethod = (index: number, field: keyof Omit<PaymentMethod, "id">, value: string) => {
-    const updatedMethods = [...paymentMethods]
-    updatedMethods[index] = { ...updatedMethods[index], [field]: value }
-    setPaymentMethods(updatedMethods)
-  }
+    const updatedMethods = [...paymentMethods];
+    updatedMethods[index] = { ...updatedMethods[index], [field]: value };
+    setPaymentMethods(updatedMethods);
+  };
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
-    onSubmit({
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+  
+    // Validate user role
+    const user = await validateUser();
+    if (!user) {
+      alert("You are not authorized to perform this action.");
+      return;
+    }
+  
+    // Prepare ambassador data
+    const ambassadorData = {
       name,
       email,
       phone,
       address,
       country,
       photoUrl,
-      paymentMethods: paymentMethods as PaymentMethod[],
-    })
-  }
+      paymentMethods: paymentMethods.map((pm) => ({
+        ...pm,
+        id: uuidv4(),
+      })),
+      role: "ambassador",
+      createdAt: ambassador?.createdAt || new Date(), 
+    };
+  
+    try {
+      if (ambassador?.id) {
+        // Update existing ambassador
+        const ambassadorRef = doc(db, "ambassadors", ambassador.id);
+        await updateDoc(ambassadorRef, ambassadorData);
+        alert("Ambassador updated successfully!");
+      } else {
+    
+        // Add to the `stafs` collection for authentication
+        const stafData = {
+          email,
+          role: "ambassador",
+          createdAt: new Date(),
+        };
+        await addDoc(collection(db, "stafs"), stafData);
+  
+        alert("Ambassador created successfully!");
+      }
+  
+      onSubmit(ambassadorData);  
+    } catch (error) {
+      console.error("Error saving ambassador:", error);
+      alert("An error occurred while saving the ambassador.");
+    }
+  };
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
@@ -174,8 +215,7 @@ const AmbassadorForm: React.FC<AmbassadorFormProps> = ({ ambassador, onSubmit })
         {ambassador ? "Update Ambassador" : "Create Ambassador"}
       </Button>
     </form>
-  )
-}
+  );
+};
 
-export default AmbassadorForm
-
+export default AmbassadorForm;

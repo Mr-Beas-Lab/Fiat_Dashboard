@@ -1,22 +1,28 @@
-import { Link } from "react-router-dom"
+import { useAuth } from "../context/AuthContext";  
+import { LogOut } from "lucide-react";  
 
 const Navbar = () => {
+  const { logout, currentUser } = useAuth();  
+
   return (
-    <nav className="bg-blue-600 p-4">
+    <nav className="bg-(--color-primary) p-4">
       <div className="container mx-auto flex justify-between items-center">
-        <h1 className="text-white text-xl font-bold">Admin & Ambassador Dashboard</h1>
+        <h1 className="text-white text-xl font-bold">MRB Fiat Dashboard</h1>
         <div className="space-x-4">
-          <Link to="/admin" className="text-white hover:text-gray-200">
-            Admin
-          </Link>
-          <Link to="/ambassador" className="text-white hover:text-gray-200">
-            Ambassador
-          </Link>
+          {/* Conditionally render the Logout Button if the user is logged in */}
+          {currentUser && (
+            <button
+              onClick={logout}  
+              className="flex items-center text-white cursor-pointer"
+            >
+              <LogOut className="w-5 h-5 text-red-600 mr-2" />  
+              Logout
+            </button>
+          )}
         </div>
       </div>
     </nav>
-  )
-}
+  );
+};
 
-export default Navbar
-
+export default Navbar;

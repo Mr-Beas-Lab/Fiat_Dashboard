@@ -1,7 +1,7 @@
 import type React from "react"
-import type { Transaction } from "../types"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "./ui/table"
-import { formatDate } from "../lib/utils"
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../ui/table"
+import { formatDate } from "../../lib/utils"
+import { Transaction } from "../../types"
 
 interface TransactionListProps {
   transactions: Transaction[]

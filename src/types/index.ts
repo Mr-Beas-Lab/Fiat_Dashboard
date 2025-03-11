@@ -10,13 +10,13 @@ export interface Receipt {
   }
   
   export interface Transaction {
-    id: string
-    amount: number
-    currency: string
-    status: string
-    ambassadorId?: string
-    type: "deposit" | "withdrawal"
-    createdAt: Date
+    id: string;
+    amount: number;
+    currency: string;
+    status: string;
+    ambassadorId?: string;
+    type: "deposit" | "withdrawal";
+    createdAt: Date;
   }
   
   export interface PaymentMethod {
@@ -33,10 +33,12 @@ export interface Receipt {
     email: string
     phone: string
     address: string
-    photoUrl: string
     country: string
+    photoUrl: string
     paymentMethods: PaymentMethod[]
     createdAt: Date
+    role: string 
   }
+  
   
   

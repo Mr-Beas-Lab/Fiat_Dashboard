@@ -10,10 +10,11 @@ import { Button } from "../components/ui/button"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../components/ui/dialog"
 import AmbassadorList from "../components/AmbassadorList"
 import AmbassadorForm from "../components/AmbassadorForm"
-import ReceiptList from "../components/ReceiptList"
-import TransactionList from "../components/TransactionList"
+import ReceiptList from "../components/ambassador/ReceiptList"
+import TransactionList from "../components/ambassador/TransactionList"
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card"
 import { UserPlus, Users, ReceiptIcon, CreditCard } from "lucide-react"
+import LoadingScreen from "./Loading"
 
 const AdminDashboard: React.FC = () => {
   const [ambassadors, setAmbassadors] = useState<Ambassador[]>([])
@@ -192,6 +193,9 @@ const AdminDashboard: React.FC = () => {
     return new Date(date).toLocaleDateString()
   }
 
+  if (loading) {
+    return <LoadingScreen />;
+  }
   return (
     <div className="container mx-auto p-4">
       <h1 className="text-2xl font-bold mb-6">Admin Dashboard</h1>

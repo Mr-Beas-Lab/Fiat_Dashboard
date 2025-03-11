@@ -1,11 +1,11 @@
 "use client"
 
 import type React from "react"
-import type { Receipt } from "../types"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "./ui/table"
-import { Button } from "./ui/button"
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../ui/table"
+import { Button } from "../ui/button"
 import { Eye, Check, X } from "lucide-react"
-import { formatDate } from "../lib/utils"
+import { formatDate } from "../../lib/utils"
+import { Receipt } from "../../types"
 
 interface ReceiptListProps {
   receipts: Receipt[]
@@ -105,6 +105,8 @@ const ReceiptList: React.FC<ReceiptListProps> = ({
           </TableBody>
         </Table>
       </div>
+
+      
     </div>
   )
 }
