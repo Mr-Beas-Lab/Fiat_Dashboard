@@ -6,8 +6,11 @@ import AdminDashboard from "./pages/AdminDashboard";
 import AmbassadorDashboard from "./pages/AmbassadorDashboard";
 import LoginPage from "./pages/Login";
 import AmbassadorRegister from "./pages/RegisterAmbasador";
-import ActivateAccount from "./pages/ActivateAccount";
 import ForgotPassword from "./pages/ForgotPassword";
+import AdminRegister from "./pages/AdminRegister";
+import KYCForm from "./components/kyc/KycForm";
+import AdminKYCReview from "./pages/AdminKYCReview";
+import { useAuth } from "./context/AuthContext";
 
 const App = () => {
   return (
@@ -17,9 +20,19 @@ const App = () => {
         <Routes>
           {/* Public routes */}
           <Route path="/login" element={<LoginPage />} />
-          <Route path="/activate" element={<ActivateAccount />} />
           <Route path="/ambassador-register" element={<AmbassadorRegister />} />
           <Route path="/forgot-password" element={<ForgotPassword />} />
+          <Route path="/admin-register" element={<AdminRegister />} />
+
+          {/* KYC Form Route */}
+          <Route
+            path="/complete-kyc"
+            element={
+              <ProtectedRoute requiredRole="ambassador">
+                <KYCFormWrapper />
+              </ProtectedRoute>
+            }
+          />
 
           {/* Protected routes */}
           <Route
@@ -38,6 +51,14 @@ const App = () => {
               </ProtectedRoute>
             }
           />
+          <Route
+            path="/admin/kyc-review"
+            element={
+              <ProtectedRoute requiredRole="admin">
+                <AdminKYCReview />
+              </ProtectedRoute>
+            }
+          />
 
           {/* Default redirects */}
           <Route path="/" element={<Navigate to="/login" replace />} />
@@ -46,6 +67,17 @@ const App = () => {
       </AuthProvider>
     </Router>
   );
+};
+
+// Wrapper component to pass ambassadorId to KYCForm
+const KYCFormWrapper = () => {
+  const { currentUser } = useAuth(); // Use the useAuth hook to get the authenticated user
+
+  if (!currentUser) {
+    return <Navigate to="/login" replace />;
+  }
+
+  return <KYCForm ambassadorId={currentUser.uid} />; // Pass the user's UID as ambassadorId
 };
 
 export default App;

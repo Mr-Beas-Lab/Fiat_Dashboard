@@ -6,8 +6,6 @@ const LoginPage: React.FC = () => {
   const navigate = useNavigate();
 
   const handleLoginSuccess = (userRole: "admin" | "ambassador", userId: string) => {
-    console.log('User role in handleLoginSuccess:', userRole);
-    console.log('User ID in handleLoginSuccess:', userId);
 
     const path = userRole === "admin" ? "/admin" : "/ambassador";
     console.log('Navigating to:', path);

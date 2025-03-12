@@ -8,13 +8,13 @@ import { CheckCircle } from 'lucide-react';
 import { serverTimestamp, doc, setDoc } from "firebase/firestore";
 import { db } from "../firebase/firebaseConfig";
 import { getAuth, createUserWithEmailAndPassword, sendEmailVerification } from "firebase/auth";
-import PhoneInput, { isValidPhoneNumber } from 'react-phone-number-input';
+import PhoneInput from 'react-phone-number-input';
 import 'react-phone-number-input/style.css';
 import { E164Number } from "libphonenumber-js";
 
 const auth = getAuth();
 
-export default function AmbassadorRegister() {
+export default function AdminRegister() {
   const router = useNavigate();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitSuccess, setSubmitSuccess] = useState(false);
@@ -40,6 +40,8 @@ export default function AmbassadorRegister() {
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
+
+    // Clear error when user types
     if (errors[name]) {
       setErrors(prev => ({ ...prev, [name]: null }));
     }
@@ -77,9 +79,6 @@ export default function AmbassadorRegister() {
     if (!formData.phone.trim()) {
       newErrors.phone = "Phone number is required";
       isValid = false;
-    } else if (!isValidPhoneNumber(formData.phone)) {
-      newErrors.phone = "Phone number is invalid";
-      isValid = false;
     }
 
     if (!formData.password.trim()) {
@@ -96,38 +95,36 @@ export default function AmbassadorRegister() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
+  
     if (!validateForm()) {
       return;
     }
-
+  
     try {
       setIsSubmitting(true);
-
+  
       // Create user in Firebase Auth
       const userCredential = await createUserWithEmailAndPassword(auth, formData.email, formData.password);
       const user = userCredential.user;
-      console.log(await user.getIdTokenResult());
+  
       // Send verification email
       await sendEmailVerification(user);
-
-      // Save user data in Firestore
+  
+      // Save user data in Firestore with role: "admin"
       await setDoc(doc(db, "staffs", user.uid), {
         firstName: formData.firstName,
         lastName: formData.lastName,
         email: formData.email,
         phone: formData.phone,
+        uid: user.uid,
+        emailStatus: "pending", 
         kyc: "pending",
-        role: "ambassador",
+        role: "admin",  // Default role for admin
         createdAt: serverTimestamp(),
-        address: "", 
-        country: "",
-        photoUrl: "",
       });
-
+  
       setSubmitSuccess(true);
-      setFormData({ firstName: "", lastName: "", email: "", phone: "", password: "" }); // Reset form
-
+  
       // Redirect after 2 seconds
       setTimeout(() => {
         router("/login");
@@ -136,8 +133,6 @@ export default function AmbassadorRegister() {
       console.error("Error submitting registration:", error);
       if (error.code === "auth/email-already-in-use") {
         setErrors(prev => ({ ...prev, email: "Email is already in use" }));
-      } else if (error.code === "auth/weak-password") {
-        setErrors(prev => ({ ...prev, password: "Password is too weak" }));
       } else {
         setErrors(prev => ({ ...prev, email: "An error occurred. Please try again." }));
       }
@@ -166,33 +161,13 @@ export default function AmbassadorRegister() {
     );
   }
 
-  if (submitSuccess) {
-    return (
-      <Card className="w-full max-w-3xl mx-auto">
-        <CardHeader>
-          <CardTitle className="text-center">Registration Successful</CardTitle>
-          <CardDescription className="text-center">
-            An activation link has been sent to your email.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="flex flex-col items-center justify-center py-10">
-          <CheckCircle className="h-16 w-16 text-green-500 mb-4" />
-          <p className="text-center max-w-md">
-            Please check your email and click the activation link to complete your registration.
-            You will be redirected to the login page.
-          </p>
-        </CardContent>
-      </Card>
-    );
-  }
-
   return (
     <form onSubmit={handleSubmit}>
       <Card className="w-full max-w-3xl mx-auto my-5">
         <CardHeader>
-          <CardTitle>Ambassador Registration</CardTitle>
+          <CardTitle>Admin Registration</CardTitle>
           <CardDescription>
-            Complete your registration to become an ambassador
+            Complete your registration to create an admin account
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">

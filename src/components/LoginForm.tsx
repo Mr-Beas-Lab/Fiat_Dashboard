@@ -26,28 +26,31 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSuccess }) => {
     e.preventDefault();
     setError(null);
     setIsLoading(true);
-
+  
     try {
       // Log in the user
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
       const user = userCredential.user;
-
+  
+      // Check if the email is verified
+      if (!user.emailVerified) {
+        setError('Please verify your email before logging in.');
+        setIsLoading(false);
+        return; // Stop further execution
+      }
+  
       // Fetch the user's role from Firestore
       const userDocRef = doc(db, 'staffs', user.uid);
       const userDoc = await getDoc(userDocRef);
-
+  
       if (userDoc.exists()) {
         const userData = userDoc.data();
         const userRole = userData.role;
-
-        // Debugging: Log the role and userId
-        console.log('User role from Firestore:', userRole);
-        console.log('User ID:', user.uid);
-
+  
         // Check if the role is valid
         if (userRole === 'admin' || userRole === 'ambassador') {
           if (onSuccess) {
-            onSuccess(userRole, user.uid); // Pass both userRole and userId
+            onSuccess(userRole, user.uid);
           } else {
             navigate(userRole === 'admin' ? `/admin?userId=${user.uid}` : `/ambassador?userId=${user.uid}`);
           }
@@ -59,11 +62,11 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSuccess }) => {
       }
     } catch (error: any) {
       console.error('Login error:', error);
-
+  
       // Detailed error handling
       switch (error.code) {
         case 'auth/user-not-found':
-          setError('No user found with that email.');
+          setError('Email does not exist. Please check your email or register.');
           break;
         case 'auth/wrong-password':
           setError('Incorrect password. Please try again.');
