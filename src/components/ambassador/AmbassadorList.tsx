@@ -1,11 +1,11 @@
 "use client"
 
 import type React from "react"
-import type { Ambassador } from "../types"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "./ui/table"
-import { Button } from "./ui/button"
+import type { Ambassador } from "../../types"
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../ui/table"
+import { Button } from "../ui/button"
 import { Edit, Trash2, Eye } from "lucide-react"
-import { formatDate } from "../lib/utils"
+import { formatDate } from "../../lib/utils"
 
 interface AmbassadorListProps {
   ambassadors: Ambassador[]
@@ -44,11 +44,11 @@ const AmbassadorList: React.FC<AmbassadorListProps> = ({ ambassadors, onEdit, on
                   <TableCell>
                     <img
                       src={ambassador.photoUrl || "/placeholder.svg"}
-                      alt={ambassador.name}
+                      alt={ambassador.firstName}
                       className="w-10 h-10 rounded-full object-cover"
                     />
                   </TableCell>
-                  <TableCell className="font-medium">{ambassador.name}</TableCell>
+                  <TableCell className="font-medium">{ambassador.firstName + ' '+ ambassador.lastName}</TableCell>
                   <TableCell>{ambassador.email}</TableCell>
                   <TableCell>{ambassador.phone}</TableCell>
                   <TableCell>{ambassador.country}</TableCell>
