@@ -1,5 +1,3 @@
-"use client"
-
 import type React from "react"
 import type { Ambassador } from "../../types"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../ui/table"
